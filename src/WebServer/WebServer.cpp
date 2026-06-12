@@ -53,6 +53,9 @@ namespace {
 
 constexpr const char * kVersion = GIT_VERSION;
 
+// One year, immutable - every cacheable asset is cache-busted by ?v=GIT_VERSION.
+constexpr const char * kImmutableCache = "public, max-age=31536000, immutable";
+
 WebServer s_http(80);
 bool      s_inited = false;
 
@@ -63,7 +66,7 @@ void send_text(int code, const char * mime, const char * body) {
 // Serves a PROGMEM gzip blob with Content-Encoding: gzip + long Cache-Control.
 void send_gzip_p(int code, const char * mime, const uint8_t * blob, size_t len) {
   s_http.sendHeader("Content-Encoding", "gzip");
-  s_http.sendHeader("Cache-Control", "public, max-age=31536000, immutable");
+  s_http.sendHeader("Cache-Control", kImmutableCache);
   s_http.setContentLength(len);
   s_http.send(code, mime, "");
   s_http.sendContent_P(reinterpret_cast<const char *>(blob), len);
@@ -182,6 +185,22 @@ void handle_favicon() {
   s_http.send(200, "image/svg+xml", kTrefoilSvg);
 }
 
+// Opens a chunked HTML response and emits the shared <head> for /, /update,
+// /crash. Caller opens its own <body> (some pages set a class).
+static void send_head(const char * title) {
+  s_http.setContentLength(CONTENT_LENGTH_UNKNOWN);
+  s_http.send(200, "text/html; charset=utf-8", "");
+  s_http.sendContent_P(PSTR(
+    "<!doctype html><html lang=en><head>"
+    "<meta charset=utf-8>"
+    "<meta name=viewport content=\"width=device-width,initial-scale=1\">"
+    "<link rel=icon type=image/svg+xml href=/favicon.svg>"
+    "<link rel=stylesheet href=/style.css" EG_CACHE_BUST ">"
+    "<title>"));
+  s_http.sendContent(title);
+  s_http.sendContent_P(PSTR("</title></head>"));
+}
+
 void handle_index() {
   size_t station_count = 0;
   size_t udp_count = 0;
@@ -198,25 +217,10 @@ void handle_index() {
   const IPAddress ip = WiFi.localIP();
 
   // Chunked stream; page exceeds any sensible stack buffer.
-  s_http.setContentLength(CONTENT_LENGTH_UNKNOWN);
-  s_http.send(200, "text/html; charset=utf-8", "");
-
-  s_http.sendContent_P(PSTR(
-    "<!doctype html><html lang=en><head>"
-    "<meta charset=utf-8><meta name=viewport content=\"width=device-width,initial-scale=1\">"
-    "<title>ESPGeiger Gadget</title>"
-    "<link rel=icon type=image/svg+xml href=/favicon.svg>"
-    "<link rel=stylesheet href=/style.css" EG_CACHE_BUST ">"
-    "</head><body>"
-    "<h1>"
-    "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'>"
-    "<circle cx='256' cy='256' r='256' fill='#666'/>"
-    "<circle cx='256' cy='256' r='220' fill='#FB2'/>"
-    "<path fill='#555' d='M256 286a30 30 0 1 0 0-60 30 30 0 0 0 0 60zm28-82 62-109"
-    "a182 182 0 0 0-182 1l63 109a57 57 0 0 1 57-1zm155 51H313c0 21-11 39-28 49l64"
-    " 108c54-32 90-90 90-157zM163 412l64-108a57 57 0 0 1-28-49H73c0 67 36 125 90 "
-    "157z'/></svg>"
-    "ESPGeiger Gadget</h1>"));
+  send_head("ESPGeiger Gadget");
+  s_http.sendContent_P(PSTR("<body><h1>"));
+  s_http.sendContent(kTrefoilSvg);
+  s_http.sendContent_P(PSTR("ESPGeiger Gadget</h1>"));
 
   // JS at the bottom updates these cells from /stats.json.
   char row[160];
@@ -381,15 +385,9 @@ void handle_test_radmon() {
 // /update: GET form + POST multipart upload via Arduino Update.
 // Bad uploads auto-revert via the rollback marker in main.cpp.
 void handle_update_form() {
-  s_http.setContentLength(CONTENT_LENGTH_UNKNOWN);
-  s_http.send(200, "text/html; charset=utf-8", "");
+  send_head("Update - ESPGeiger Gadget");
   s_http.sendContent_P(PSTR(
-    "<!doctype html><html lang=en><head>"
-    "<meta charset=utf-8>"
-    "<meta name=viewport content=\"width=device-width,initial-scale=1\">"
-    "<title>Update - ESPGeiger Gadget</title>"
-    "<link rel=stylesheet href=/style.css" EG_CACHE_BUST ">"
-    "</head><body class=narrow>"
+    "<body class=narrow>"
     "<h1>Firmware update</h1>"
     "<div class=warn><b>Be careful.</b> Only flash a .bin built for this "
     "gadget. The current firmware will reboot when done. If the new "
@@ -476,7 +474,7 @@ void handle_app_js() {
 #if EG_GZ_INDEX_JS
   send_gzip_p(200, "application/javascript", INDEX_JS_GZ, INDEX_JS_GZ_LEN);
 #else
-  s_http.sendHeader("Cache-Control", "public, max-age=31536000, immutable");
+  s_http.sendHeader("Cache-Control", kImmutableCache);
   s_http.send_P(200, "application/javascript", INDEX_JS);
 #endif
 }
@@ -485,22 +483,16 @@ void handle_style_css() {
 #if EG_GZ_STYLE_CSS
   send_gzip_p(200, "text/css", STYLE_CSS_GZ, STYLE_CSS_GZ_LEN);
 #else
-  s_http.sendHeader("Cache-Control", "public, max-age=31536000, immutable");
+  s_http.sendHeader("Cache-Control", kImmutableCache);
   s_http.send_P(200, "text/css", STYLE_CSS);
 #endif
 }
 
 void handle_crash() {
   const CrashDump::Info & ci = CrashDump::info();
-  s_http.setContentLength(CONTENT_LENGTH_UNKNOWN);
-  s_http.send(200, "text/html; charset=utf-8", "");
+  send_head("Last crash - ESPGeiger Gadget");
   s_http.sendContent_P(PSTR(
-    "<!doctype html><html lang=en><head>"
-    "<meta charset=utf-8>"
-    "<meta name=viewport content=\"width=device-width,initial-scale=1\">"
-    "<title>Last crash - ESPGeiger Gadget</title>"
-    "<link rel=stylesheet href=/style.css" EG_CACHE_BUST ">"
-    "</head><body>"
+    "<body>"
     "<h1>Last crash</h1>"));
 
   // Send each row separately so they can't blow a single stack buffer.
