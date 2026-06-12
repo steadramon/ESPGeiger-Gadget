@@ -1,0 +1,10 @@
+{
+  "name": "ESPGeiger Gadget {version} (ILI9341 / Rv2)",
+  "new_install_prompt_erase": true,
+  "builds": [
+    {
+      "chipFamily": "ESP32",
+      "parts": [{ "path": "firmware.bin", "offset": 0 }]
+    }
+  ]
+}

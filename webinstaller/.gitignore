@@ -1,0 +1,2 @@
+# Firmware is injected at publish time by .github/workflows/installer.yml
+bin/*/firmware.bin

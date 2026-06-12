@@ -1,0 +1,55 @@
+name: Web Installer
+
+# Publishes the webinstaller/ folder to GitHub Pages with the firmware from a
+# release injected. Run by hand from the Actions tab once you are happy with a
+# release. Defaults to the latest release.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to pull firmware from (blank = latest)"
+        required: false
+        default: ""
+
+concurrency:
+  group: web-installer
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download release firmware
+        uses: robinraju/release-downloader@v1.10
+        id: dl
+        with:
+          repository: ${{ github.repository }}
+          latest: ${{ github.event.inputs.tag == '' }}
+          tag: ${{ github.event.inputs.tag }}
+          fileName: "*-merged.bin"
+          out-file-path: "downloaded"
+
+      - name: Place firmware under each panel build
+        run: |
+          mv ./downloaded/espgadget-cyd-st7789-rv3-*-merged.bin  webinstaller/bin/st7789-rv3/firmware.bin
+          mv ./downloaded/espgadget-cyd-ili9341-rv2-*-merged.bin webinstaller/bin/ili9341-rv2/firmware.bin
+          rm -rf ./downloaded
+
+      - name: Stamp version into manifests and page
+        run: |
+          TAG="${{ steps.dl.outputs.tag_name }}"
+          sed -i "s#{version}#${TAG}#g" webinstaller/bin/*/manifest.json webinstaller/index.htm
+
+      - name: Publish to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./webinstaller
+          publish_branch: gh-pages
+          # Single orphan commit per publish - keeps the firmware binaries from
+          # accumulating in branch history.
+          force_orphan: true

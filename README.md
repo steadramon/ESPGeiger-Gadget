@@ -14,23 +14,13 @@ Sunton ESP32-2432S028R — 240×320 SPI panel, resistive touch, speaker, USB-C. 
 
 Both ILI9341 (Rv2) and ST7789 (Rv3) panel revisions are supported; flash whichever PlatformIO env matches the board.
 
-## Build and flash
+## Install
 
-```sh
-pio run -e cyd                  # ST7789 (Rv3), release
-pio run -e cyd_ili9341          # ILI9341 (Rv2)
-pio run -e cyd_debug            # with serial logging
-pio run -e cyd -t upload        # flash via USB
-pio run -e cyd -t monitor       # serial monitor (115200)
-```
+Pre-built firmware lives on the **[GitHub Releases page](../../releases)**. That is the recommended way to get going - no toolchain required. (Prefer to build it yourself? See [Build from source](#build-from-source).)
 
-First boot shows a WiFi picker; pick an SSID, enter the password on the on-screen keyboard, and the gadget reconnects automatically thereafter. Everything else (theme, hostname, audio, watchdogs, station cap) lives under the gear icon and persists to NVS.
+### 1. Pick the right file
 
-Subsequent firmware updates can be uploaded over the network at `http://<hostname>.local/update` — the dual-partition layout (1.9 MB OTA slots) automatically rolls back if the new firmware crashes within 30 s of boot.
-
-### Pre-built firmware
-
-If you don't want to set up PlatformIO, the [Releases page](../../releases) has pre-built binaries for both panel variants. **Count the USB ports on your board** to pick the right one:
+**Count the USB ports on your board** to choose the panel build:
 
 | USB ports | Panel | Grab this `-merged.bin` |
 |-----------|-------|-------------------------|
@@ -39,12 +29,36 @@ If you don't want to set up PlatformIO, the [Releases page](../../releases) has 
 
 Stickers on the board (e.g. `TPM408`) are batch labels and do not identify the panel. If you guess wrong nothing breaks: the screen just boots blank or garbled, so flash the other file instead.
 
+### 2. Flash it
+
+**Easiest - one-click web installer:** open <https://gadget.espgeiger.com> in Chrome or Edge (Web Serial is not supported in Firefox or Safari), plug the board in, pick your panel, and hit Install. It downloads and flashes the right firmware for you - no files to grab, nothing to install.
+
+**Manual web flasher:** if you would rather drive it yourself, open Espressif's official [esptool-js](https://espressif.github.io/esptool-js/) in Chrome or Edge, click **Connect**, add the downloaded `-merged.bin` at flash address `0x0`, and click **Program**. It is open source and maintained by Espressif.
+
+**Command line**, if you already have [esptool](https://github.com/espressif/esptool) installed:
+
 ```sh
 esptool.py --chip esp32 --port /dev/cu.usbserial-XXXX --baud 921600 \
   write_flash 0x0 espgadget-cyd-st7789-rv3-vX.Y.Z-merged.bin
 ```
 
-After that the smaller `.bin` (without `-merged`) is the OTA file.
+### 3. First boot
+
+The gadget shows a WiFi picker; pick an SSID, enter the password on the on-screen keyboard, and it reconnects automatically thereafter. Everything else (theme, hostname, audio, watchdogs, station cap) lives under the gear icon and persists to NVS.
+
+### Updating later (over the network)
+
+After the first USB flash you never need a cable again. Open `http://<hostname>.local/update` and upload the smaller `.bin` (the one *without* `-merged`). The dual-partition layout (1.9 MB OTA slots) automatically rolls back if the new firmware crashes within 30 s of boot.
+
+## Build from source
+
+```sh
+pio run -e cyd                  # ST7789 (Rv3), release
+pio run -e cyd_ili9341          # ILI9341 (Rv2)
+pio run -e cyd_debug            # with serial logging
+pio run -e cyd -t upload        # flash via USB
+pio run -e cyd -t monitor       # serial monitor (115200)
+```
 
 ## Acknowledgements
 
