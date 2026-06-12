@@ -37,7 +37,11 @@ jobs:
           echo "#define GADGET_VERSION \"${TAG}\"" > include/VersionGenerated.h
           cat include/VersionGenerated.h
       - name: Run PlatformIO
-        run: platformio run -e ${{ matrix.environments }}
+        run: |
+          platformio pkg install -e ${{ matrix.environments }}
+          # tool-esptoolpy 2.x ships esptool.py without +x, which elf2image and merge_bin exec directly
+          find ~/.platformio/packages -name 'esptool.py' -exec chmod +x {} +
+          platformio run -e ${{ matrix.environments }}
       - name: Build merged firmware
         run: |
           ENV="${{ matrix.environments }}"
@@ -57,8 +61,7 @@ jobs:
           mkdir -p toDeploy
           TAG="${GITHUB_REF#refs/tags/}"
           ENV="${{ matrix.environments }}"
-          # Device-explicit label: board + panel chip + revision, so a CYD owner
-          # cannot flash the wrong panel build.
+          # Label by board + panel chip + revision so the wrong build can't be flashed
           case "$ENV" in
             cyd)          LABEL="cyd-st7789-rv3" ;;
             cyd_ili9341)  LABEL="cyd-ili9341-rv2" ;;

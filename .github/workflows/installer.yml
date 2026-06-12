@@ -1,8 +1,7 @@
 name: Web Installer
 
-# Publishes the webinstaller/ folder to GitHub Pages with the firmware from a
-# release injected. Run by hand from the Actions tab once you are happy with a
-# release. Defaults to the latest release.
+# Publishes webinstaller/ to Pages with a release's firmware injected. Run by hand
+# after a release; blank tag uses the latest.
 on:
   workflow_dispatch:
     inputs:
@@ -50,6 +49,5 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./webinstaller
           publish_branch: gh-pages
-          # Single orphan commit per publish - keeps the firmware binaries from
-          # accumulating in branch history.
+          # Orphan commit per publish keeps firmware binaries out of branch history
           force_orphan: true
