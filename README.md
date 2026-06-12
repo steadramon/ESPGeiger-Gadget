@@ -10,7 +10,7 @@ A LAN companion display for [ESPGeiger](https://github.com/steadramon/ESPGeiger)
 
 ## Hardware
 
-Sunton ESP32-2432S028R — 240×320 SPI panel, resistive touch, speaker, USB-C. ~£8 / US$10 [from AliExpress](https://s.click.aliexpress.com/e/_c3zLYcL3) (with or without case).
+Sunton ESP32-2432S028R — 240×320 SPI panel, resistive touch, speaker, USB-C. [from AliExpress](https://s.click.aliexpress.com/e/_c3zLYcL3) (with or without case).
 
 Both ILI9341 (Rv2) and ST7789 (Rv3) panel revisions are supported; flash whichever PlatformIO env matches the board.
 
