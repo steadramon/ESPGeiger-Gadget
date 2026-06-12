@@ -30,7 +30,6 @@ Future firmware updates can be uploaded over the network at `http://<hostname>.l
 
 ## Acknowledgements
 
-- [steadramon/ESPGeiger](https://github.com/steadramon/ESPGeiger) — the parent firmware this gadget orbits.
 - [rzeldent/esp32-smartdisplay](https://github.com/rzeldent/esp32-smartdisplay) and the [Sunton board JSONs](https://github.com/rzeldent/platformio-espressif32-sunton).
 - [LVGL](https://lvgl.io/) and [LovyanGFX](https://github.com/lovyan03/LovyanGFX).
 
