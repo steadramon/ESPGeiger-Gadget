@@ -57,8 +57,15 @@ jobs:
           mkdir -p toDeploy
           TAG="${GITHUB_REF#refs/tags/}"
           ENV="${{ matrix.environments }}"
-          cp ".pio/build/${ENV}/firmware.bin"        "toDeploy/espgeiger-gadget-${TAG}-${ENV}.bin"
-          cp ".pio/build/${ENV}/firmware_merged.bin" "toDeploy/espgeiger-gadget-${TAG}-${ENV}-merged.bin"
+          # Device-explicit label: board + panel chip + revision, so a CYD owner
+          # cannot flash the wrong panel build.
+          case "$ENV" in
+            cyd)          LABEL="cyd-st7789-rv3" ;;
+            cyd_ili9341)  LABEL="cyd-ili9341-rv2" ;;
+            *)            LABEL="$ENV" ;;
+          esac
+          cp ".pio/build/${ENV}/firmware.bin"        "toDeploy/espgadget-${LABEL}-${TAG}.bin"
+          cp ".pio/build/${ENV}/firmware_merged.bin" "toDeploy/espgadget-${LABEL}-${TAG}-merged.bin"
       - name: Resolve release upload URL
         run: |
           RELEASE_ID=$(jq --raw-output '.release.id' $GITHUB_EVENT_PATH)

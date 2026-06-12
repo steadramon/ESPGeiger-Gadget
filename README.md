@@ -30,11 +30,18 @@ Subsequent firmware updates can be uploaded over the network at `http://<hostnam
 
 ### Pre-built firmware
 
-If you don't want to set up PlatformIO, the [Releases page](../../releases) has pre-built binaries for both panel variants. Grab the `-merged.bin` for your board (`cyd` for ST7789 / Rv3, `cyd_ili9341` for ILI9341 / Rv2) and flash:
+If you don't want to set up PlatformIO, the [Releases page](../../releases) has pre-built binaries for both panel variants. **Count the USB ports on your board** to pick the right one:
+
+| USB ports | Panel | Grab this `-merged.bin` |
+|-----------|-------|-------------------------|
+| Two (micro-USB **and** USB-C) | ST7789 (Rv3) | `espgadget-cyd-st7789-rv3-vX.Y.Z-merged.bin` |
+| One (micro-USB only) | ILI9341 (Rv2) | `espgadget-cyd-ili9341-rv2-vX.Y.Z-merged.bin` |
+
+Stickers on the board (e.g. `TPM408`) are batch labels and do not identify the panel. If you guess wrong nothing breaks: the screen just boots blank or garbled, so flash the other file instead.
 
 ```sh
 esptool.py --chip esp32 --port /dev/cu.usbserial-XXXX --baud 921600 \
-  write_flash 0x0 espgeiger-gadget-vX.Y.Z-cyd-merged.bin
+  write_flash 0x0 espgadget-cyd-st7789-rv3-vX.Y.Z-merged.bin
 ```
 
 After that the smaller `.bin` (without `-merged`) is the OTA file.
