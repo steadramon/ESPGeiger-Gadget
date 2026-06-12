@@ -1,0 +1,71 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  build-upload:
+    strategy:
+      fail-fast: false
+      matrix:
+        environments:
+          - "cyd"
+          - "cyd_ili9341"
+    runs-on: ubuntu-24.04
+    name: Build ${{ matrix.environments }} and attach to release
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0           # scripts/git_rev.py needs tag history
+          submodules: recursive
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: Install platformio
+        run: |
+          python -m pip install --upgrade pip
+          pip install 'platformio==6.1.9'
+      - name: Write generated version header
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          TAG="${TAG#v}"           # vX.Y.Z -> X.Y.Z on the device
+          echo "#define GADGET_VERSION \"${TAG}\"" > include/VersionGenerated.h
+          cat include/VersionGenerated.h
+      - name: Run PlatformIO
+        run: platformio run -e ${{ matrix.environments }}
+      - name: Build merged firmware
+        run: |
+          ENV="${{ matrix.environments }}"
+          BOOT_APP0="$(find ~/.platformio/packages -name 'boot_app0.bin' -path '*framework-arduinoespressif32*' | head -1)"
+          if [ -z "$BOOT_APP0" ]; then echo "boot_app0.bin not found"; exit 1; fi
+          pio pkg exec -- esptool.py --chip esp32 merge_bin \
+            -o ".pio/build/${ENV}/firmware_merged.bin" \
+            --flash_mode dio \
+            --flash_freq 40m \
+            --flash_size 4MB \
+            0x1000  ".pio/build/${ENV}/bootloader.bin" \
+            0x8000  ".pio/build/${ENV}/partitions.bin" \
+            0xe000  "${BOOT_APP0}" \
+            0x10000 ".pio/build/${ENV}/firmware.bin"
+      - name: Stage release artifacts
+        run: |
+          mkdir -p toDeploy
+          TAG="${GITHUB_REF#refs/tags/}"
+          ENV="${{ matrix.environments }}"
+          cp ".pio/build/${ENV}/firmware.bin"        "toDeploy/espgeiger-gadget-${TAG}-${ENV}.bin"
+          cp ".pio/build/${ENV}/firmware_merged.bin" "toDeploy/espgeiger-gadget-${TAG}-${ENV}-merged.bin"
+      - name: Resolve release upload URL
+        run: |
+          RELEASE_ID=$(jq --raw-output '.release.id' $GITHUB_EVENT_PATH)
+          echo "release_upload_url=https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}/assets{?name,label}" >> $GITHUB_ENV
+      - name: Upload release assets
+        uses: csexton/release-asset-action@v3
+        with:
+          pattern: "toDeploy/*"
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          release-url: ${{ env.release_upload_url }}

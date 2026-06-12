@@ -1,0 +1,10 @@
+.pio/
+.vscode/
+.DS_Store
+*.swp
+*.swo
+*~
+.idea/
+.cache/
+toDeploy/
+include/VersionGenerated.h
