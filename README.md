@@ -26,7 +26,18 @@ pio run -e cyd -t monitor       # serial monitor (115200)
 
 First boot shows a WiFi picker; pick an SSID, enter the password on the on-screen keyboard, and the gadget reconnects automatically thereafter. Everything else (theme, hostname, audio, watchdogs, station cap) lives under the gear icon and persists to NVS.
 
-Future firmware updates can be uploaded over the network at `http://<hostname>.local/update` — the dual-partition layout (1.9 MB OTA slots) automatically rolls back if the new firmware crashes within 30 s of boot.
+Subsequent firmware updates can be uploaded over the network at `http://<hostname>.local/update` — the dual-partition layout (1.9 MB OTA slots) automatically rolls back if the new firmware crashes within 30 s of boot.
+
+### Pre-built firmware
+
+If you don't want to set up PlatformIO, the [Releases page](../../releases) has pre-built binaries for both panel variants. Grab the `-merged.bin` for your board (`cyd` for ST7789 / Rv3, `cyd_ili9341` for ILI9341 / Rv2) and flash:
+
+```sh
+esptool.py --chip esp32 --port /dev/cu.usbserial-XXXX --baud 921600 \
+  write_flash 0x0 espgeiger-gadget-vX.Y.Z-cyd-merged.bin
+```
+
+After that the smaller `.bin` (without `-merged`) is the OTA file.
 
 ## Acknowledgements
 
