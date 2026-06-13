@@ -840,7 +840,7 @@ void on_audio_slider(lv_event_t * e) {
   Settings::g_audio_enabled = (v > 0);
   if (settings_audio_lbl) {
     char buf[24];
-    snprintf(buf, sizeof(buf), v == 0 ? "Audio off" : "Audio vol %d%%", v);
+    snprintf(buf, sizeof(buf), v == 0 ? "Audio off" : "Audio %d%%", v);
     lv_label_set_text(settings_audio_lbl, buf);
   }
   s_settings_dirty = true;
@@ -1232,12 +1232,19 @@ void build_settings() {
   lv_obj_set_style_bg_color(cal_btn, lv_color_hex(Theme::kRowBgPressed), LV_STATE_PRESSED);
   lv_obj_set_style_radius(cal_btn, Theme::kRadiusBtn, 0);
   lv_obj_set_style_border_width(cal_btn, 0, 0);
+  lv_obj_set_style_pad_left(cal_btn, 8, 0);
+  lv_obj_set_style_pad_right(cal_btn, 8, 0);
   lv_obj_add_event_cb(cal_btn, on_calibrate_tap, LV_EVENT_CLICKED, nullptr);
   lv_obj_t * cal_lbl = lv_label_create(cal_btn);
   lv_label_set_text(cal_lbl, "Calibrate touch");
   lv_obj_set_style_text_font(cal_lbl, Theme::f_body, 0);
   lv_obj_set_style_text_color(cal_lbl, lv_color_hex(Theme::kFg), 0);
-  lv_obj_center(cal_lbl);
+  lv_obj_align(cal_lbl, LV_ALIGN_LEFT_MID, 0, 0);
+  lv_obj_t * cal_chev = lv_label_create(cal_btn);
+  lv_label_set_text(cal_chev, LV_SYMBOL_RIGHT);
+  lv_obj_set_style_text_font(cal_chev, Theme::f_muted, 0);
+  lv_obj_set_style_text_color(cal_chev, lv_color_hex(Theme::kMuted), 0);
+  lv_obj_align(cal_chev, LV_ALIGN_RIGHT_MID, 0, 0);
 
   lv_obj_t * dice_row = lv_button_create(scr_settings);
   lv_obj_set_size(dice_row, Board::SCREEN_W - 24, 26);
@@ -1409,7 +1416,7 @@ void settings_refresh() {
   if (settings_audio_lbl) {
     char buf[24];
     if (Settings::g_audio_volume == 0) snprintf(buf, sizeof(buf), "Audio off");
-    else snprintf(buf, sizeof(buf), "Audio vol %d%%", (int)Settings::g_audio_volume);
+    else snprintf(buf, sizeof(buf), "Audio %d%%", (int)Settings::g_audio_volume);
     lv_label_set_text(settings_audio_lbl, buf);
   }
 
