@@ -41,7 +41,9 @@ jobs:
       - name: Stamp version into manifests and page
         run: |
           TAG="${{ steps.dl.outputs.tag_name }}"
-          sed -i "s#{version}#${TAG}#g" webinstaller/bin/*/manifest.json webinstaller/index.htm
+          VERSION="${TAG#v}"   # vX.Y.Z -> X.Y.Z for display
+          echo "Stamping as $VERSION (release $TAG)"
+          sed -i "s#{version}#${VERSION}#g" webinstaller/bin/*/manifest.json webinstaller/index.htm
 
       - name: Publish to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4

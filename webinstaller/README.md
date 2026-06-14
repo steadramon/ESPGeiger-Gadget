@@ -5,8 +5,17 @@ with no toolchain. Served from GitHub Pages at <https://gadget.espgeiger.com>.
 
 ## How it works
 
-- `index.htm` - the page. Loads ESP Web Tools from the unpkg CDN (pinned to v10),
-  offers the two CYD panel builds, and flashes the matching merged image.
+- `index.htm` - the page. Offers the two CYD panel builds and flashes the
+  matching merged image. The ESP Web Tools entry is loaded with a `?v={version}`
+  cache-bust so a republish never serves a stale shell.
+- `brand.css` - shared ESPGeiger brand theme (topbar, palette, card/form
+  styles), copied verbatim from the firmware webinstaller so the install pages
+  look like one product. Also cache-busted via `?v={version}`.
+- `installer/` - ESP Web Tools vendored as code-split chunks (entry
+  `install-button.js` plus lazy-loaded flash dialog / esptool-js / chip stubs).
+  Built artefacts, committed deliberately - the CDN builds of esp-web-tools 10.x
+  are broken (silent button-never-mounts). Regenerate with
+  `script/update-esp-web-tools.sh [version]` (needs node/npm).
 - `bin/<panel>/manifest.json` - one ESP Web Tools manifest per panel. The
   firmware itself (`firmware.bin`) is not committed; it is injected at publish
   time from the GitHub release.
