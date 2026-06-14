@@ -17,9 +17,10 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-// Each credited UDP click is one Monte Carlo dart throw. Dart (x, y) is
-// xorshift'd from the click's ts_ms ^ counter so the position depends on
-// real radiation timing entropy. Aggregated across the whole fleet.
+// Each credited UDP click drives Monte Carlo dart throws. The click's
+// ts_ms ^ counter entropy is folded into a splitmix64 stream that the darts
+// are drawn from, so positions track real radiation timing. Aggregated across
+// the whole fleet.
 
 #pragma once
 
@@ -43,10 +44,9 @@ struct Snapshot {
 
 void init();
 
-// One dart per credited click. seed must vary per call (callers pass the
-// station's now_ms ^ total_clicks); each dart in the batch xorshifts
-// (seed + i * golden_ratio) so a single big gap-fill still produces
-// statistically independent darts.
+// kDartsPerClick darts per credited click. seed varies per call (callers pass
+// the station's now_ms ^ total_clicks) and is folded into the splitmix stream,
+// so a single big gap-fill still produces statistically independent darts.
 void throw_darts(uint32_t seed, uint32_t count);
 
 void snapshot(Snapshot & out);

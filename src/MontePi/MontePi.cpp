@@ -36,14 +36,15 @@ int16_t           s_ring_y[kRingLen] = {0};
 size_t            s_ring_head  = 0;
 size_t            s_ring_count = 0;
 
-// xorshift32; mixes the (ts_ms, counter) entropy so the LSBs are usable
-// as independent x/y halves.
-inline uint32_t mix(uint32_t a, uint32_t b) {
-  uint32_t s = a ^ (b * 0x9E3779B1u);
-  s ^= s << 13;
-  s ^= s >> 17;
-  s ^= s << 5;
-  return s;
+// splitmix64. A single xorshift round (the old approach) is linear, so its top
+// bits stayed correlated with the seed counter and biased the ratio (~3.156).
+uint64_t s_state = 0x9E3779B97F4A7C15ull;
+
+inline uint64_t next64() {
+  uint64_t z = (s_state += 0x9E3779B97F4A7C15ull);
+  z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9ull;
+  z = (z ^ (z >> 27)) * 0x94D049BB133111EBull;
+  return z ^ (z >> 31);
 }
 
 }  // anonymous namespace
@@ -52,10 +53,8 @@ void init() {
   if (!s_mux) s_mux = xSemaphoreCreateMutex();
 }
 
-// Each credited decay seeds this many independent dart samples (different
-// xorshift seed mixings of the same source entropy). Trade-off: 1 = pure
-// physics, ~3 matching digits after a month; 16 = "decay event entropy
-// expanded to 16 samples", ~5 matching digits after a month.
+// Dart samples per credited decay. 1 = pure physics; 16 = more samples per
+// decay, same 1/sqrt(N) convergence in total darts.
 constexpr uint32_t kDartsPerClick = 16;
 
 void throw_darts(uint32_t seed, uint32_t count) {
@@ -63,19 +62,18 @@ void throw_darts(uint32_t seed, uint32_t count) {
   const uint32_t dart_count = count * kDartsPerClick;
   if (xSemaphoreTake(s_mux, pdMS_TO_TICKS(20)) != pdTRUE) return;
   g_decays += count;
+  // Fold click entropy into the stream so darts track decay timing.
+  s_state ^= (uint64_t)seed * 0x9E3779B97F4A7C15ull;
+  // Circle inscribed in a 2^32 square centred on origin; fraction inside -> pi/4.
+  const uint64_t kR2 = (uint64_t)2147483648ull * 2147483648ull;  // (2^31)^2
   for (uint32_t i = 0; i < dart_count; i++) {
-    // Independent derivations so x and y are uncorrelated.
-    // (The XOR salts are the leading digits of pi, for the obvious reason.)
-    const uint32_t r1 = mix(seed + i * 2654435761u, i ^ 0x31415926u);
-    const uint32_t r2 = mix(seed + i * 0x85EBCA6Bu, ~i ^ 0x53589793u);
-    const int16_t x = (int16_t)(r1 >> 16);
-    const int16_t y = (int16_t)(r2 >> 16);
-    const int64_t r2_sq = (int64_t)x * x + (int64_t)y * y;
-    const int64_t one   = (int64_t)32767 * 32767;
+    const uint64_t a = next64();
+    const int64_t dx = (int64_t)(uint32_t)(a >> 32) - 2147483648ll;
+    const int64_t dy = (int64_t)(uint32_t)(a)       - 2147483648ll;
     g_darts++;
-    if (r2_sq <= one) g_inside++;
-    s_ring_x[s_ring_head] = x;
-    s_ring_y[s_ring_head] = y;
+    if ((uint64_t)(dx * dx) + (uint64_t)(dy * dy) <= kR2) g_inside++;
+    s_ring_x[s_ring_head] = (int16_t)(dx >> 16);
+    s_ring_y[s_ring_head] = (int16_t)(dy >> 16);
     s_ring_head = (s_ring_head + 1) % kRingLen;
     if (s_ring_count < kRingLen) s_ring_count++;
   }
