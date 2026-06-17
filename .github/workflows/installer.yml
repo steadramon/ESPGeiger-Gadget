@@ -29,13 +29,18 @@ jobs:
           repository: ${{ github.repository }}
           latest: ${{ github.event.inputs.tag == '' }}
           tag: ${{ github.event.inputs.tag }}
-          fileName: "*-merged.bin"
+          fileName: "espgadget-cyd-*.bin"
           out-file-path: "downloaded"
 
-      - name: Place firmware under each panel build
+      - name: Place app firmware under each panel build
         run: |
-          mv ./downloaded/espgadget-cyd-st7789-rv3-*-merged.bin  webinstaller/bin/st7789-rv3/firmware.bin
-          mv ./downloaded/espgadget-cyd-ili9341-rv2-*-merged.bin webinstaller/bin/ili9341-rv2/firmware.bin
+          # Multi-part manifests flash bootloader/partitions/boot_app0 (committed,
+          # static) + this app image, skipping the NVS region so settings survive
+          # an update. Take the per-panel app bin, never the merged one.
+          for panel in st7789-rv3 ili9341-rv2; do
+            app=$(ls ./downloaded/espgadget-cyd-${panel}-*.bin | grep -v -- '-merged.bin')
+            mv "$app" webinstaller/bin/${panel}/firmware.bin
+          done
           rm -rf ./downloaded
           # Source-only ignore; if published, gh-pages' git add honours it and skips the injected firmware.
           rm -f webinstaller/.gitignore
