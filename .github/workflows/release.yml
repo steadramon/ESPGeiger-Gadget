@@ -73,6 +73,30 @@ jobs:
           esac
           cp ".pio/build/${ENV}/firmware.bin"        "toDeploy/espgadget-${LABEL}-${TAG}.bin"
           cp ".pio/build/${ENV}/firmware_merged.bin" "toDeploy/espgadget-${LABEL}-${TAG}-merged.bin"
+      - name: Collect web installer flash parts
+        run: |
+          # The web installer flashes these four parts at their real offsets so the
+          # NVS region (0x9000-0xe000) is never written and wifi/settings survive an
+          # update. Captured here straight from the esptool/pio build, then bundled
+          # by the webinstaller job - no slicing, nothing static to commit.
+          ENV="${{ matrix.environments }}"
+          BOOT_APP0="$(find ~/.platformio/packages -name 'boot_app0.bin' -path '*framework-arduinoespressif32*' | head -1)"
+          if [ -z "$BOOT_APP0" ]; then echo "boot_app0.bin not found"; exit 1; fi
+          case "$ENV" in
+            cyd)          PANEL="st7789-rv3" ;;
+            cyd_ili9341)  PANEL="ili9341-rv2" ;;
+            *)            PANEL="$ENV" ;;
+          esac
+          mkdir -p "parts/${PANEL}"
+          cp ".pio/build/${ENV}/bootloader.bin" "parts/${PANEL}/bootloader.bin"
+          cp ".pio/build/${ENV}/partitions.bin" "parts/${PANEL}/partitions.bin"
+          cp "${BOOT_APP0}"                      "parts/${PANEL}/boot_app0.bin"
+          cp ".pio/build/${ENV}/firmware.bin"    "parts/${PANEL}/firmware.bin"
+      - name: Upload web installer parts
+        uses: actions/upload-artifact@v4
+        with:
+          name: webparts-${{ matrix.environments }}
+          path: parts/
       - name: Resolve release upload URL
         run: |
           RELEASE_ID=$(jq --raw-output '.release.id' $GITHUB_EVENT_PATH)
@@ -81,5 +105,41 @@ jobs:
         uses: csexton/release-asset-action@v3
         with:
           pattern: "toDeploy/*"
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          release-url: ${{ env.release_upload_url }}
+
+  webinstaller:
+    needs: build-upload
+    runs-on: ubuntu-24.04
+    name: Bundle web installer
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - name: Fetch flash parts from build jobs
+        uses: actions/download-artifact@v4
+        with:
+          pattern: webparts-*
+          merge-multiple: true     # both panels into one parts/<panel>/ tree
+          path: parts
+      - name: Assemble and zip the web installer
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          VERSION="${TAG#v}"        # vX.Y.Z -> X.Y.Z for display
+          # Drop each panel's flash parts next to its manifest, stamp the version.
+          cp -r parts/* webinstaller/bin/
+          sed -i "s#{version}#${VERSION}#g" webinstaller/bin/*/manifest.json webinstaller/index.htm
+          # Ship only what the hosted site serves.
+          rm -f webinstaller/.gitignore webinstaller/README.md
+          rm -rf webinstaller/script
+          (cd webinstaller && zip -r "../espgadget-webinstaller-${TAG}.zip" .)
+      - name: Resolve release upload URL
+        run: |
+          RELEASE_ID=$(jq --raw-output '.release.id' $GITHUB_EVENT_PATH)
+          echo "release_upload_url=https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}/assets{?name,label}" >> $GITHUB_ENV
+      - name: Upload web installer bundle
+        uses: csexton/release-asset-action@v3
+        with:
+          pattern: "espgadget-webinstaller-*.zip"
           github-token: ${{ secrets.GITHUB_TOKEN }}
           release-url: ${{ env.release_upload_url }}

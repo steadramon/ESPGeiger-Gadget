@@ -1,12 +1,13 @@
 name: Web Installer
 
-# Publishes webinstaller/ to Pages with a release's firmware injected. Run by hand
-# after a release; blank tag uses the latest.
+# Publishes a release's web installer bundle (espgadget-webinstaller-<tag>.zip,
+# built by release.yml) to GitHub Pages. Run by hand once happy with a release;
+# blank tag uses the latest.
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag to pull firmware from (blank = latest)"
+        description: "Release tag to publish (blank = latest)"
         required: false
         default: ""
 
@@ -20,43 +21,25 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v5
-
-      - name: Download release firmware
+      - name: Download web installer bundle
         uses: robinraju/release-downloader@v1.10
-        id: dl
         with:
           repository: ${{ github.repository }}
           latest: ${{ github.event.inputs.tag == '' }}
           tag: ${{ github.event.inputs.tag }}
-          fileName: "espgadget-cyd-*.bin"
-          out-file-path: "downloaded"
+          fileName: "espgadget-webinstaller-*.zip"
+          out-file-path: "dl"
 
-      - name: Place app firmware under each panel build
+      - name: Unpack bundle
         run: |
-          # Multi-part manifests flash bootloader/partitions/boot_app0 (committed,
-          # static) + this app image, skipping the NVS region so settings survive
-          # an update. Take the per-panel app bin, never the merged one.
-          for panel in st7789-rv3 ili9341-rv2; do
-            app=$(ls ./downloaded/espgadget-cyd-${panel}-*.bin | grep -v -- '-merged.bin')
-            mv "$app" webinstaller/bin/${panel}/firmware.bin
-          done
-          rm -rf ./downloaded
-          # Source-only ignore; if published, gh-pages' git add honours it and skips the injected firmware.
-          rm -f webinstaller/.gitignore
-
-      - name: Stamp version into manifests and page
-        run: |
-          TAG="${{ steps.dl.outputs.tag_name }}"
-          VERSION="${TAG#v}"   # vX.Y.Z -> X.Y.Z for display
-          echo "Stamping as $VERSION (release $TAG)"
-          sed -i "s#{version}#${VERSION}#g" webinstaller/bin/*/manifest.json webinstaller/index.htm
+          mkdir site
+          unzip -o dl/espgadget-webinstaller-*.zip -d site
 
       - name: Publish to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./webinstaller
+          publish_dir: ./site
           publish_branch: gh-pages
           # Orphan commit per publish keeps firmware binaries out of branch history
           force_orphan: true

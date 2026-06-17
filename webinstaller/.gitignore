@@ -1,2 +1,6 @@
-# Firmware is injected at publish time by .github/workflows/installer.yml
+# Flash parts are sliced from the release's merged image at publish time
+# by .github/workflows/installer.yml - never committed.
+bin/*/bootloader.bin
+bin/*/partitions.bin
+bin/*/boot_app0.bin
 bin/*/firmware.bin
