@@ -37,6 +37,8 @@ jobs:
           mv ./downloaded/espgadget-cyd-st7789-rv3-*-merged.bin  webinstaller/bin/st7789-rv3/firmware.bin
           mv ./downloaded/espgadget-cyd-ili9341-rv2-*-merged.bin webinstaller/bin/ili9341-rv2/firmware.bin
           rm -rf ./downloaded
+          # Source-only ignore; if published, gh-pages' git add honours it and skips the injected firmware.
+          rm -f webinstaller/.gitignore
 
       - name: Stamp version into manifests and page
         run: |
