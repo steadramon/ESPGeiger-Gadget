@@ -101,9 +101,9 @@ border-radius:6px;margin-top:1em;font-weight:500}
 .back{display:inline-block;margin-top:1em;background:var(--accent);color:#fff;
 padding:.5em 1em;border-radius:6px;font-weight:500;text-decoration:none}
 .back:hover{opacity:.9;text-decoration:none}
-.brand{margin-top:2em;font-size:.85em;color:var(--muted);font-family:"Courier New",Courier,monospace}
-.brand a{color:var(--fg);font-weight:600;text-decoration:none}
-.brand a:hover{text-decoration:underline}
+.cred{margin-top:1.5em;font-size:.85em;color:var(--muted)}
+.cred .brand{color:var(--fg);font-weight:bold;font-family:"Courier New",Courier,monospace}
+.cred a{color:inherit}
 .warn{background:#4a1a1a;color:#ffaaaa;padding:.75em 1em;border-radius:6px;
 margin:1em 0;font-size:.95em}
 pre{background:var(--card);border:1px solid var(--border);border-radius:6px;
@@ -267,8 +267,8 @@ void handle_index() {
     "</table>"
     "<p class=menu><a href=/shot>Screenshot (BMP)</a> "
     "<a href=/update>Update firmware</a></p>"
-    "<p class=brand>"
-    "<a href='https://github.com/steadramon/ESPGeiger-Gadget'>ESPGeiger-Gadget</a>&middot;"));
+    "<p class=cred>"
+    "<a class=brand href='https://github.com/steadramon/ESPGeiger-Gadget'>ESPGeiger-Gadget</a> &middot; "));
   s_http.sendContent(kVersion);
   s_http.sendContent_P(PSTR("</p>"));
 
