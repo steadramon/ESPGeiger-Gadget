@@ -21,8 +21,9 @@
 
 namespace IgmpRefresh {
 
-// Re-emit IGMP reports for every multicast group the WiFi STA netif is joined
-// to. Call periodically to defeat router membership aging without any socket
+// Re-emit IGMP reports for every group the WiFi STA netif has joined, straight
+// through lwIP. Routers age out membership and beginMulticast() can no-op after
+// long uptime, so call periodically to keep multicast alive without socket
 // churn. No-op when WiFi is down. Lifted from the ESPGeiger parent firmware.
 void refresh();
 

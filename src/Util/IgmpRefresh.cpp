@@ -21,7 +21,8 @@
 
 #include <Arduino.h>
 #include <WiFi.h>
-#include <tcpip_adapter.h>
+#include <esp_netif.h>
+#include <esp_netif_net_stack.h>
 #include <lwip/igmp.h>
 #include <lwip/netif.h>
 #include <lwip/tcpip.h>
@@ -30,10 +31,8 @@ namespace IgmpRefresh {
 
 namespace {
 
-// Runs in the lwIP tcpip thread (via tcpip_callback). Walks the netif's joined
-// group list and re-sends a Membership Report for each, bypassing the BSD
-// socket layer. beginMulticast() cannot be trusted to do this after long
-// uptime on this lwIP build.
+// Must run on the tcpip thread: igmp_report_groups() mutates the netif group
+// list that the stack also walks.
 void report_groups_cb(void * ctx) {
   igmp_report_groups((struct netif *)ctx);
 }
@@ -42,13 +41,12 @@ void report_groups_cb(void * ctx) {
 
 void refresh() {
   if (WiFi.status() != WL_CONNECTED) return;
-  void * nif = nullptr;
-  if (tcpip_adapter_get_netif(TCPIP_ADAPTER_IF_STA, &nif) != ESP_OK || !nif) {
+  esp_netif_t * sta = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
+  struct netif * nif = sta ? (struct netif *)esp_netif_get_netif_impl(sta) : nullptr;
+  if (!nif) {
     Serial.println("[udp] IgmpRefresh: no STA netif");
     return;
   }
-  // Marshal into the tcpip thread; igmp_report_groups() touches the netif group
-  // list that the stack also walks, so it must not run from this task directly.
   if (tcpip_callback(report_groups_cb, nif) != ERR_OK) {
     Serial.println("[udp] IgmpRefresh: tcpip mailbox full");
   }

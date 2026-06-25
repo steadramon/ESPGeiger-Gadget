@@ -3101,6 +3101,9 @@ void build_spec_card() {
   lv_obj_set_style_radius(card, 0, 0);
   lv_obj_set_style_pad_all(card, 12, 0);
   lv_obj_clear_flag(card, LV_OBJ_FLAG_SCROLLABLE);
+  // The card covers the screen, so bubble its taps to the root's exit handler;
+  // otherwise only the thin margin around it dismisses the card.
+  lv_obj_add_flag(card, LV_OBJ_FLAG_EVENT_BUBBLE);
 
   lv_obj_t * title = lv_label_create(card);
   lv_label_set_text(title, "TOP SECRET");
