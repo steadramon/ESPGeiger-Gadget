@@ -32,6 +32,7 @@
 #include "../State/State.h"
 #include "../Stations/Stations.h"
 #include "../Util/FastMillis.h"
+#include "../Util/IgmpRefresh.h"
 
 namespace UdpRx {
 
@@ -68,6 +69,10 @@ volatile int  g_cpm_alarm_idx     = -1;
 // Force a rebind after this long of silence on a connected socket.
 constexpr uint32_t kHeartbeatMs = 120000;
 volatile uint32_t s_last_pkt_at_ms = 0;
+
+// Re-emit IGMP membership reports this often, even while packets flow, so an
+// aggressive router never ages out our multicast subscription.
+constexpr uint32_t kIgmpRefreshMs = 300000;
 
 namespace {
 
@@ -305,6 +310,7 @@ void process_packet(const uint8_t * buf, int len) {
 
 WiFiUDP       s_udp;
 bool          s_socket_open = false;
+uint32_t      s_last_igmp_refresh_ms = 0;   // fast_millis() of last bind/IGMP refresh (task-only)
 char          s_open_addr[Settings::kAddrLen] = {0};
 uint16_t      s_open_port = 0;
 bool          s_open_enabled = false;
@@ -342,6 +348,8 @@ bool open_socket() {
   s_open_port    = Settings::g_udp_port;
   s_open_enabled = true;
   s_socket_open  = true;
+  // beginMulticast() just sent a fresh join, so reset the refresh timer.
+  s_last_igmp_refresh_ms = fast_millis();
   return true;
 }
 
@@ -400,6 +408,15 @@ void task_body(void * /*arg*/) {
                     (unsigned long)(fast_millis() - s_last_pkt_at_ms));
       close_socket();
       s_last_pkt_at_ms = fast_millis();
+    }
+
+    // Re-emit IGMP membership reports via lwIP directly - no socket teardown,
+    // covers every group joined on the STA netif (this socket + mDNS).
+    if (now_connected && s_socket_open && Settings::g_udp_enabled &&
+        s_last_igmp_refresh_ms != 0 &&
+        (fast_millis() - s_last_igmp_refresh_ms) > kIgmpRefreshMs) {
+      IgmpRefresh::refresh();
+      s_last_igmp_refresh_ms = fast_millis();
     }
 
     if (settings_changed()) {
