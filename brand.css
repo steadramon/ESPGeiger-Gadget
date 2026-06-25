@@ -1,0 +1,134 @@
+/* ESPGeiger shared brand styles.
+   Powers install.espgeiger.com and any other www property that wants the
+   ESPGeiger look. The visual anchor lives on espgeiger.com (mainpage.html),
+   where the J305 photo fills the viewport. Subpages share the palette and
+   Courier title but use a compact top bar so the content area gets the
+   space. Keep all values centralised here.
+*/
+
+:root {
+  --page:   #1a1d20;
+  --card:   #2b3035;
+  --field:  #1a1d20;
+  --fg:     #dee2e6;
+  --muted:  #adb5bd;
+  --border: #373b3e;
+  --bar:    #0f1113;
+  --accent: #06c;
+  --accent-hover: #0573e6;
+  --brand-font: "Courier New", Courier, monospace;
+  --body-font: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+html, body { background: var(--page); margin: 0; }
+body {
+  font: 16px/1.5 var(--body-font);
+  color: var(--fg);
+}
+
+a {
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: none;
+}
+a:hover { text-decoration: underline; }
+
+.muted { color: var(--muted); font-size: .9em; }
+
+/* Top bar: subpage header. One row with logo + title + version, plus a
+   right-aligned link back to the main site. Sticky so the brand stays
+   visible while the user scrolls a long form. */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px 20px;
+  background: var(--bar);
+  border-bottom: 1px solid var(--border);
+}
+.topbar svg { width: 36px; height: 36px; flex-shrink: 0; }
+.topbar .title {
+  font-family: var(--brand-font);
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: .2px;
+}
+.topbar .sub {
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 400;
+}
+.topbar a.home {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 15px;
+}
+.topbar a.home:hover { color: var(--fg); }
+
+@media (max-width: 480px) {
+  .topbar .sub  { width: 100%; padding-left: 48px; margin-top: -4px; }
+  .topbar a.home { width: 100%; padding-left: 48px; margin-left: 0; }
+}
+
+/* Content area below the top bar. */
+.content {
+  text-align: center;
+  padding: 1.5em 1em 3em;
+}
+.content .main { max-width: 640px; margin: 0 auto; }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1em 1.2em;
+  margin: 1.2em auto;
+  max-width: 510px;
+  text-align: left;
+}
+.card h3 {
+  margin: 0 0 .6em;
+  font-size: .9em;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  text-align: center;
+}
+
+.btn {
+  outline: none;
+  cursor: pointer;
+  padding: .6em 1.4em;
+  font-family: inherit;
+  font-size: 16px;
+  background: var(--accent);
+  color: #fff;
+  border: 0;
+  border-radius: 4px;
+}
+.btn:hover { background: var(--accent-hover); }
+
+select.field {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  width: 100%;
+  padding: .55em .9em;
+  background: var(--field) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='%23adb5bd'><polygon points='0,0 12,0 6,8'/></svg>") no-repeat;
+  background-position: right .8em center;
+  background-size: 10px;
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font: inherit;
+  cursor: pointer;
+  outline: none;
+}
+select.field:focus { border-color: var(--accent); }
+option { background: var(--card); color: var(--fg); }
