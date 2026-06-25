@@ -42,14 +42,10 @@ void report_groups_cb(void * ctx) {
 void refresh() {
   if (WiFi.status() != WL_CONNECTED) return;
   esp_netif_t * sta = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
-  struct netif * nif = sta ? (struct netif *)esp_netif_get_netif_impl(sta) : nullptr;
-  if (!nif) {
-    Serial.println("[udp] IgmpRefresh: no STA netif");
-    return;
-  }
-  if (tcpip_callback(report_groups_cb, nif) != ERR_OK) {
-    Serial.println("[udp] IgmpRefresh: tcpip mailbox full");
-  }
+  if (!sta) return;
+  void * nif = esp_netif_get_netif_impl(sta);
+  if (!nif) return;
+  tcpip_callback(report_groups_cb, nif);
 }
 
 }  // namespace IgmpRefresh
